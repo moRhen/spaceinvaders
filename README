@@ -1,0 +1,8 @@
+Clone of Space Invaders
+game in terminal using standard lib curses
+
+stil in development
+done for now*
+    score bar
+    live bar
+    moving and shooting ship using arrow keys and space
