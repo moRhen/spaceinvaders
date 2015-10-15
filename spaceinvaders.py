@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from time import time
+from time import time, sleep
 from random import randint
 import curses
 
@@ -19,8 +19,10 @@ class Spaceinvaders(object):
         self.pos_x_shoot = 0
         self.shoot_time = 0
         self.shoots = 0
+        self.shoot_speed = 0.15 # shoot animation speed
         self.score = 0
         self.defence = []
+        #aliens#################
         self.aliens_move_time = 0
         self.aliens_move = 0
         self.aliens30 = []
@@ -31,8 +33,11 @@ class Spaceinvaders(object):
         self.aliens_shoot_time = 0
         self.aliens_shoots = 0
         self.aliens_shoot_pos = []
+        self.aliens_speed = 0.5 #aliens animation speed
+        self.aliens_shoot_speed = 0.4 #aliens shoot animation speed
 
     def reset(self):
+        self.stdscr.clear()
         self.pos_x = 18
         self.pos_x_last = 0
         self.pos_y_shoot = 16
@@ -54,7 +59,7 @@ class Spaceinvaders(object):
         self.aliens_shoot_pos = [0, 0]
 
     def ship(self, event):
-        #move#################
+        #move###################
         if event == curses.KEY_LEFT:
             self.pos_x_last = self.pos_x
             self.pos_x -= 1
@@ -65,12 +70,15 @@ class Spaceinvaders(object):
             self.pos_x += 1
             if self.pos_x > 34:
                 self.pos_x = self.max_x
-        #shoot################
+        #shoot##################
         if event == 32:
             self.shoots = 1
             self.pos_x_shoot = self.pos_x
 
     def aliens(self):
+        aliens = self.aliens30 + self.aliens20 + self.aliens10
+        aliens.sort(reverse = True)
+        self.aliens_shoot_pos = [aliens[0][0] + 1, aliens[randint(1, len(aliens))-1][1]]
         self.aliens_shoots = 1
 
     def alien_direction(self, position):
@@ -80,34 +88,30 @@ class Spaceinvaders(object):
             position = position[1] + 1
         return position
 
-    def alien(self):
-        #move#################
-        pass        
-
     def render(self):
-        #upperbar#############
+        #upperbar###############
         self.stdscr.addstr(0, 0, 'SCORE')
         self.stdscr.addstr(1, 0, '{:0>5}'.format(self.score))
-        #bottombar############
+        #bottombar##############
         self.stdscr.addstr(18, 0, '_' * 36)
         self.stdscr.addstr(19, 0, '{}  {}'.format(self.lives[0], ' '.join(self.lives[1:])))
-        #ship#################
+        #ship###################
         self.stdscr.addstr(self.pos_y, self.pos_x, '⍊')
         if self.pos_x != self.pos_x_last:
             self.stdscr.addstr(self.pos_y, self.pos_x_last, ' ')
-        #ship#shoot###########
+        #ship#shoot#############
         if self.pos_y_shoot == 1:
             self.shoots = 0
             self.stdscr.addstr(self.pos_y_shoot + 1, self.pos_x_shoot, ' ')
             self.pos_y_shoot = 16
-        if self.shoots != 0 and self.pos_y_shoot > 1:
+        if self.shoots != 0:# and self.pos_y_shoot > 1:
             if self.pos_y_shoot < 16:
                 self.stdscr.addstr(self.pos_y_shoot + 1, self.pos_x_shoot, ' ')
             self.stdscr.addstr(self.pos_y_shoot, self.pos_x_shoot, '|')
-            if time() - self.shoot_time > 0.075:#shoot speed
+            if time() - self.shoot_time > self.shoot_speed:#shoot speed
                 self.pos_y_shoot -= 1
                 self.shoot_time = time()
-        #ship#shoot#hit#######
+        #ship#shoot#hit#########
         shotposchar = str(self.stdscr.inch(self.pos_y_shoot, self.pos_x_shoot))
         if shotposchar != '32' and shotposchar != '124':
             self.stdscr.addstr(self.pos_y_shoot, self.pos_x_shoot, ' ')#shoting pos
@@ -131,11 +135,11 @@ class Spaceinvaders(object):
                 self.shoots = 0
                 self.pos_y_shoot = 16
                 self.score += 30
-        #defence##############
+        #defence################
         for n in self.defence:
             self.stdscr.addstr(n[0], n[1], '#')
-        #aliens###############
-        if time() - self.aliens_move_time > 0.4:#aliens animation speed
+        #aliens#################
+        if time() - self.aliens_move_time > self.aliens_speed:#aliens animation speed
             aliens = self.aliens10 + self.aliens20 + self.aliens30
             for n in aliens:#checking if aliens need to change direction and go 1 level down
                 if n[1] == 0:
@@ -169,11 +173,56 @@ class Spaceinvaders(object):
             self.stdscr.addstr(n[0], n[1], '¤')
         for n in self.aliens10:
             self.stdscr.addstr(n[0], n[1], 'ж')
-        #aliens#shoot#########
+        #aliens#shoot###########
+        if self.aliens_shoot_pos[0] == 18:#shoot reaching botom
+            self.aliens_shoots = 0
+            self.stdscr.addstr(self.aliens_shoot_pos[0] - 1, self.aliens_shoot_pos[1], ' ')
+        if self.aliens_shoots != 0:# and self.aliens_shoot_pos[0] < 18:
+            aliens = self.aliens30 + self.aliens20 + self.aliens10
+            aliens.sort(reverse = True)
+            if self.aliens_shoot_pos[0] > aliens[0][0]+1:
+                self.stdscr.addstr(self.aliens_shoot_pos[0] - 1, self.aliens_shoot_pos[1], ' ')
+            self.stdscr.addstr(self.aliens_shoot_pos[0], self.aliens_shoot_pos[1], '$')
+            if time() - self.aliens_shoot_time > self.aliens_shoot_speed:#shoot speed
+                self.aliens_shoot_pos[0] += 1
+                self.aliens_shoot_time = time()
+        #aliens#shoot#hit#######
+        if self.aliens_shoots != 0:
+            if (self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]) in self.defence:
+                self.defence.remove((self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]))
+                self.aliens_shoots = 0
+            elif (self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]) == (self.pos_y, self.pos_x):#ship hit
+                self.aliens_shoots = 0
+                if self.lives[0] > 0:
+                    self.lives[0] -= 1
+                    self.lives.remove('⍊')
+                if self.lives[0] == 0:
+                    sleep(1)
+                    self.stdscr.addstr(3, 10, 'YOU LOSE')
+                    self.stdscr.refresh()
+                    sleep(2)
+                    self.reset()
+        #aliens#shield#colision#
         aliens = self.aliens30 + self.aliens20 + self.aliens10
         aliens.sort(reverse = True)
-        self.aliens_shoot_pos = [aliens[0][0], aliens[randint(1, len(aliens))-1][1]]
-        
+        for n in aliens:
+            if tuple(n) in self.defence:
+                self.defence.remove(tuple(n)) 
+        #aliens#on#bottom#######
+        aliens = self.aliens30 + self.aliens20 + self.aliens10
+        aliens.sort(reverse = True)
+        if aliens[0][0] == 17:
+            sleep(1)
+            self.stdscr.addstr(3, 10, 'YOU LOSE')
+            self.stdscr.refresh()
+            sleep(2)
+            self.reset()
+        #finish#level###########
+        aliens = self.aliens30 + self.aliens20 + self.aliens10
+        if len(aliens) == 0:
+            score = self.score
+            self.reset()
+            self.score = score 
 #########TESTOWA##############
         #a = str(self.stdscr.inch(self.pos_y_shoot, self.pos_x_shoot))
         #self.stdscr.addstr(2, 0, a)

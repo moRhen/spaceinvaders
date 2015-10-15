@@ -1,11 +1,12 @@
 Clone of Space Invaders
 game in terminal using standard lib curses
 
-stil in development
+stil in development / playable
 done for now*
     score bar
     live bar
     moving and shooting ship using arrow keys and space
     shields
-    moving aliens
-    
+    moving and shooting aliens
+##################
+need alot of code improvement
