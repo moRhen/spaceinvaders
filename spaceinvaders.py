@@ -2,21 +2,19 @@
 from time import time, sleep
 from random import randint
 import curses
-
-#print('\x1b[8;20;36t')
-
+print('\x1b[8;30;36t')# height, width of terminal / set same for self.height, self.width
 class Spaceinvaders(object):
 
     def __init__(self, stdscr):
         self.stdscr = stdscr
-        self.pos_y = 17
-        self.pos_x = 0
+        self.width = 36
+        self.height = 30
+        #if self.width != self.stdscr.getmaxyx():
+        #    self.width = 
+        self.pos = []#ship position y, x !!!y is first in curses
         self.pos_x_last = 0
-        self.min_x = 0
-        self.max_x = 35
         self.lives = []
-        self.pos_y_shoot = 0
-        self.pos_x_shoot = 0
+        self.pos_shoot = []
         self.shoot_time = 0
         self.shoots = 0
         self.shoot_speed = 0.15 # shoot animation speed
@@ -38,19 +36,20 @@ class Spaceinvaders(object):
 
     def reset(self):
         self.stdscr.clear()
-        self.pos_x = 18
+        self.pos = [self.height - 3, (self.width // 2)]#ship position y, x !!!y is first in curses
         self.pos_x_last = 0
-        self.pos_y_shoot = 16
-        self.pos_x_shoot = 0
+        self.pos_shoot = [self.height - 4, 0]
         self.shoot_time = 0
         self.shoots = 0
         self.lives = [3, '⍊', '⍊', '⍊']
         self.score = 0
-        self.defence = [(14, 10), (14, 15), (14, 20), (14, 25), (15, 9), (15, 10), (15, 11), (15, 14), (15, 15), (15, 16), (15, 19), (15, 20), (15, 21), (15, 24), (15, 25), (15, 26)]
+        self.defence2 = [(y, x) for y in [self.height - 6] for x in range(((self.width // 2) - 10),((self.width // 2) + 10)) if x%5 == 0]
+        self.defence3 = [(y, x) for y in [self.height - 5] for x in range(0, self.width) if x in [((self.defence2[0][1])-1), ((self.defence2[0][1])), ((self.defence2[0][1])+1), ((self.defence2[1][1])-1), ((self.defence2[1][1])), ((self.defence2[1][1])+1), ((self.defence2[2][1])-1), ((self.defence2[2][1])), ((self.defence2[2][1])+1), ((self.defence2[3][1])-1), ((self.defence2[3][1])), ((self.defence2[3][1])+1)]]
+        self.defence = self.defence2 + self.defence3        
         #!!!aliens position must be stored in list for further moditications#
-        self.aliens30 = [[y + 4, x + 8] for y in range(1) for x in range(20) if x % 2 == 0]
-        self.aliens20 = [[y + 5, x + 8] for y in range(2) for x in range(20) if x % 2 == 0]
-        self.aliens10 = [[y + 7, x + 8] for y in range(2) for x in range(20) if x % 2 == 0]
+        self.aliens30 = [[y + 4, x + ((self.width // 2) - 10)] for y in range(1) for x in range(22) if x % 2 == 0]
+        self.aliens20 = [[y + 5, x + ((self.width // 2) - 10)] for y in range(2) for x in range(22) if x % 2 == 0]
+        self.aliens10 = [[y + 7, x + ((self.width // 2) - 10)] for y in range(2) for x in range(22) if x % 2 == 0]
         self.aliens_move = 0
         self.aliens_move_time = 0
         self.alien_down = 0
@@ -61,19 +60,19 @@ class Spaceinvaders(object):
     def ship(self, event):
         #move###################
         if event == curses.KEY_LEFT:
-            self.pos_x_last = self.pos_x
-            self.pos_x -= 1
-            if self.pos_x < 1:
-                self.pos_x = self.min_x
+            self.pos_x_last = self.pos[1]
+            self.pos[1] -= 1
+            if self.pos[1] < 1:
+                self.pos[1] = 0
         if event == curses.KEY_RIGHT:
-            self.pos_x_last = self.pos_x
-            self.pos_x += 1
-            if self.pos_x > 34:
-                self.pos_x = self.max_x
+            self.pos_x_last = self.pos[1]
+            self.pos[1] += 1
+            if self.pos[1] > self.width - 1:
+                self.pos[1] = self.width - 1
         #shoot##################
-        if event == 32:
+        if event == 32:#if SPACE
             self.shoots = 1
-            self.pos_x_shoot = self.pos_x
+            self.pos_shoot[1] = self.pos[1]
 
     def aliens(self):
         aliens = self.aliens30 + self.aliens20 + self.aliens10
@@ -93,47 +92,47 @@ class Spaceinvaders(object):
         self.stdscr.addstr(0, 0, 'SCORE')
         self.stdscr.addstr(1, 0, '{:0>5}'.format(self.score))
         #bottombar##############
-        self.stdscr.addstr(18, 0, '_' * 36)
-        self.stdscr.addstr(19, 0, '{}  {}'.format(self.lives[0], ' '.join(self.lives[1:])))
+        self.stdscr.addstr((self.height - 2), 0, '_' * self.width)
+        self.stdscr.addstr((self.height - 1), 0, '{}  {}'.format(self.lives[0], ' '.join(self.lives[1:])))
         #ship###################
-        self.stdscr.addstr(self.pos_y, self.pos_x, '⍊')
-        if self.pos_x != self.pos_x_last:
-            self.stdscr.addstr(self.pos_y, self.pos_x_last, ' ')
+        self.stdscr.addstr(self.pos[0], self.pos[1], '⍊')
+        if self.pos[1] != self.pos_x_last:
+            self.stdscr.addstr(self.pos[0], self.pos_x_last, ' ')
         #ship#shoot#############
-        if self.pos_y_shoot == 1:
+        if self.pos_shoot[0] == 1:
             self.shoots = 0
-            self.stdscr.addstr(self.pos_y_shoot + 1, self.pos_x_shoot, ' ')
-            self.pos_y_shoot = 16
-        if self.shoots != 0:# and self.pos_y_shoot > 1:
-            if self.pos_y_shoot < 16:
-                self.stdscr.addstr(self.pos_y_shoot + 1, self.pos_x_shoot, ' ')
-            self.stdscr.addstr(self.pos_y_shoot, self.pos_x_shoot, '|')
+            self.stdscr.addstr(self.pos_shoot[0] + 1, self.pos_shoot[1], ' ')
+            self.pos_shoot[0] = self.height - 4
+        if self.shoots != 0:
+            if self.pos_shoot[0] < self.height - 4:
+                self.stdscr.addstr(self.pos_shoot[0] + 1, self.pos_shoot[1], ' ')
+            self.stdscr.addstr(self.pos_shoot[0], self.pos_shoot[1], '|')
             if time() - self.shoot_time > self.shoot_speed:#shoot speed
-                self.pos_y_shoot -= 1
+                self.pos_shoot[0] -= 1
                 self.shoot_time = time()
         #ship#shoot#hit#########
-        shotposchar = str(self.stdscr.inch(self.pos_y_shoot, self.pos_x_shoot))
-        if shotposchar != '32' and shotposchar != '124':
-            self.stdscr.addstr(self.pos_y_shoot, self.pos_x_shoot, ' ')#shoting pos
-            self.stdscr.addstr(self.pos_y_shoot + 1, self.pos_x_shoot, ' ')#clear shooting animation
-            if (self.pos_y_shoot, self.pos_x_shoot) in self.defence:
-                self.defence.remove((self.pos_y_shoot, self.pos_x_shoot))
+        shotposchar = str(self.stdscr.inch(self.pos_shoot[0], self.pos_shoot[1]))
+        if shotposchar != '32' and shotposchar != '124':#space and shoot symbol '|'
+            self.stdscr.addstr(self.pos_shoot[0], self.pos_shoot[1], ' ')#shoting pos
+            self.stdscr.addstr(self.pos_shoot[0] + 1, self.pos_shoot[1], ' ')#clear shooting animation
+            if (self.pos_shoot[0], self.pos_shoot[1]) in self.defence:
+                self.defence.remove((self.pos_shoot[0], self.pos_shoot[1]))
                 self.shoots = 0
-                self.pos_y_shoot = 16
-            elif ([self.pos_y_shoot, self.pos_x_shoot]) in self.aliens10:
-                self.aliens10.remove([self.pos_y_shoot, self.pos_x_shoot])
+                self.pos_shoot[0] = self.height - 4
+            elif ([self.pos_shoot[0], self.pos_shoot[1]]) in self.aliens10:
+                self.aliens10.remove([self.pos_shoot[0], self.pos_shoot[1]])
                 self.shoots = 0
-                self.pos_y_shoot = 16
+                self.pos_shoot[0] = self.height - 4
                 self.score += 10
-            elif ([self.pos_y_shoot, self.pos_x_shoot]) in self.aliens20:
-                self.aliens20.remove([self.pos_y_shoot, self.pos_x_shoot])
+            elif ([self.pos_shoot[0], self.pos_shoot[1]]) in self.aliens20:
+                self.aliens20.remove([self.pos_shoot[0], self.pos_shoot[1]])
                 self.shoots = 0
-                self.pos_y_shoot = 16
+                self.pos_shoot[0] = self.height - 4
                 self.score += 20
-            elif ([self.pos_y_shoot, self.pos_x_shoot]) in self.aliens30:
-                self.aliens30.remove([self.pos_y_shoot, self.pos_x_shoot])
+            elif ([self.pos_shoot[0], self.pos_shoot[1]]) in self.aliens30:
+                self.aliens30.remove([self.pos_shoot[0], self.pos_shoot[1]])
                 self.shoots = 0
-                self.pos_y_shoot = 16
+                self.pos_shoot[0] = self.height - 4
                 self.score += 30
         #defence################
         for n in self.defence:
@@ -145,12 +144,11 @@ class Spaceinvaders(object):
                 if n[1] == 0:
                     self.alien_dir = 1
                     self.alien_down = 1
-                elif n[1] == 35:
+                elif n[1] == self.width - 1:
                     self.alien_dir = 0
                     self.alien_down = 1
             if self.alien_down == 1:
                 aliens.sort()
-                #self.stdscr.addstr(aliens[0][0], 0, ' '*36)#deleting last line before going down
                 self.stdscr.clear()
                 for n in self.aliens10:
                     n[0] += 1
@@ -174,10 +172,10 @@ class Spaceinvaders(object):
         for n in self.aliens10:
             self.stdscr.addstr(n[0], n[1], 'ж')
         #aliens#shoot###########
-        if self.aliens_shoot_pos[0] == 18:#shoot reaching botom
+        if self.aliens_shoot_pos[0] == self.height - 2:#shoot reaching botom
             self.aliens_shoots = 0
             self.stdscr.addstr(self.aliens_shoot_pos[0] - 1, self.aliens_shoot_pos[1], ' ')
-        if self.aliens_shoots != 0:# and self.aliens_shoot_pos[0] < 18:
+        if self.aliens_shoots != 0:
             aliens = self.aliens30 + self.aliens20 + self.aliens10
             aliens.sort(reverse = True)
             if self.aliens_shoot_pos[0] > aliens[0][0]+1:
@@ -191,17 +189,13 @@ class Spaceinvaders(object):
             if (self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]) in self.defence:
                 self.defence.remove((self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]))
                 self.aliens_shoots = 0
-            elif (self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]) == (self.pos_y, self.pos_x):#ship hit
+            elif (self.aliens_shoot_pos[0], self.aliens_shoot_pos[1]) == (self.pos[0], self.pos[1]):#ship hit
                 self.aliens_shoots = 0
                 if self.lives[0] > 0:
                     self.lives[0] -= 1
                     self.lives.remove('⍊')
                 if self.lives[0] == 0:
-                    sleep(1)
-                    self.stdscr.addstr(3, 10, 'YOU LOSE')
-                    self.stdscr.refresh()
-                    sleep(2)
-                    self.reset()
+                    self.lose()
         #aliens#shield#colision#
         aliens = self.aliens30 + self.aliens20 + self.aliens10
         aliens.sort(reverse = True)
@@ -211,33 +205,38 @@ class Spaceinvaders(object):
         #aliens#on#bottom#######
         aliens = self.aliens30 + self.aliens20 + self.aliens10
         aliens.sort(reverse = True)
-        if aliens[0][0] == 17:
-            sleep(1)
-            self.stdscr.addstr(3, 10, 'YOU LOSE')
-            self.stdscr.refresh()
-            sleep(2)
-            self.reset()
+        if aliens[0][0] == self.height - 3:
+            self.lose()
         #finish#level###########
         aliens = self.aliens30 + self.aliens20 + self.aliens10
         if len(aliens) == 0:
             score = self.score
             self.reset()
-            self.score = score 
-#########TESTOWA##############
-        #a = str(self.stdscr.inch(self.pos_y_shoot, self.pos_x_shoot))
-        #self.stdscr.addstr(2, 0, a)
-        #self.stdscr.addstr(0, 0, str(self.aliens30))
-        #self.stdscr.addstr(3, 0, str((self.pos_y_shoot, self.pos_x_shoot)))
-
+            self.score = score        
+    def lose(self):
+        self.stdscr.addstr(3, (self.width // 2) - 4, 'YOU LOSE')
+        self.stdscr.refresh()
+        sleep(2)
+        self.reset()
+    def resizefail(self):
+        screen = self.stdscr.getmaxyx()
+        self.stdscr.addstr(11, 0, 'y{}; x{} type{}'.format(screen[0], screen[1], type(screen[1])))
+        self.stdscr.addstr(12, 0, 'y{}; x{} type{}'.format(self.height, self.width, type(self.width)))
+        
+             
+        
 def main(stdscr):
+    spaceinv = Spaceinvaders(stdscr)
     #additional curses settings
     curses.curs_set(0)
-    ###########################
-    spaceinv = Spaceinvaders(stdscr)
     while True: 
         stdscr.nodelay(1)
         stdscr.addstr(0, 0, 'Space Invaders\n\n(p) for Play\n(q) for Quit')
         event = stdscr.getch()
+        screen = stdscr.getmaxyx()
+        if screen != (spaceinv.height, spaceinv.width):
+            stdscr.addstr(5, 0, 'Resize proces went wrong\nGame will still work but for better experience\ni recommend to set terminal to 30x36(height.x.width)')
+            spaceinv.height, spaceinv.width = screen[0], screen[1]
         if event == ord('p'):
             spaceinv.reset()
             stdscr.clear()
@@ -252,7 +251,7 @@ def main(stdscr):
                 event = stdscr.getch()
                 if event in [curses.KEY_LEFT, curses.KEY_RIGHT]:
                     spaceinv.ship(event)
-                elif event == 32:
+                elif event == 32:#is SPACE
                     if spaceinv.shoots == 0:
                         spaceinv.ship(event)
                         spaceinv.shoot_time = time()
@@ -262,9 +261,5 @@ def main(stdscr):
         elif event == ord('q'):
             break       
         
-
-
 if __name__ == "__main__":
      curses.wrapper(main)
-
-# ±, ж, ¤, Ѧ, ѧ, ѫ, ⍎, ⍊, ┻, ╨
