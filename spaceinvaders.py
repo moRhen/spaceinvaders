@@ -9,8 +9,6 @@ class Spaceinvaders(object):
         self.stdscr = stdscr
         self.width = 36
         self.height = 30
-        #if self.width != self.stdscr.getmaxyx():
-        #    self.width = 
         self.pos = []#ship position y, x !!!y is first in curses
         self.pos_x_last = 0
         self.lives = []
@@ -222,9 +220,7 @@ class Spaceinvaders(object):
         screen = self.stdscr.getmaxyx()
         self.stdscr.addstr(11, 0, 'y{}; x{} type{}'.format(screen[0], screen[1], type(screen[1])))
         self.stdscr.addstr(12, 0, 'y{}; x{} type{}'.format(self.height, self.width, type(self.width)))
-        
-             
-        
+
 def main(stdscr):
     spaceinv = Spaceinvaders(stdscr)
     #additional curses settings
